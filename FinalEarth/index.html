@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<style>
+*{
+	margin: 0; padding: 0;
+	font-family: 'PingFangSC-Reglar','Microsoft YaHei','Heiti SC';
+	font-size: 12px;
+}
+body{
+	background: #000;
+}
+		.earthArea{
+			background: #000; height: 500px;
+		}
+/*云标签样式*/
+.marker {
+	position:				absolute;
+	display:				inline-block;
+	background-color: 		rgba(0,0,0,.87);	
+	color:					#ffffff;
+	font-size:				4pt;
+	-moz-user-select:		-moz-none;
+	-khtml-user-select:		none;
+	-webkit-user-select:	none;
+	margin: 				0px;
+	border:					0px;
+	padding:				10px;
+	overflow: 				hidden;		
+	cursor:					pointer;
+}
+.detail {
+	color:					#aaaaaa;
+}
+.country>img{
+	float: right; margin-top: 2px;
+}
+#wrapper{
+	display: none;
+}
+.earthInfo{
+	width: 272px; height: 412px; background: #17201c; position: absolute; left: 0px; top:200px;
+	color:#fff; border: 1px solid #456e59;
+}
+.earthInfoTop{
+	height: 84px; border-bottom: 1px solid #456e59; position: relative;
+}
+.earthInfoTitle{
+	position: absolute; top: 27px; left: 15px; 
+	font-size: 14px; color:#cce8d9; font-weight: bold;
+}
+.earthInfoType{
+	position: absolute; top: 58px; left: 15px; 
+	font-size: 12px; color:#d8dad9;
+}
+.earthInfoTypeColor{
+	color:red;
+}
+.earthInfoMid{
+	padding: 15px; font-size: 12px; color:#d8dad9;
+}
+.earthInfoMid>div{
+	height: 30px; line-height: 30px;
+}
+	</style>
+</head>
+<body>
+	<div id="visualization" >
+		<div id="earthArea" class="earthArea"></div>
+		<div id="glContainer"></div>
+	</div>
+	<div  id="dataviz" class="">
+		<div id="wrapper">
+			<div id="loading">
+				<h2>Loading TFPP AttackMap. Please wait...</h2>
+			</div>
+		<div >
+			<table id="marker_template" class="marker" style="left:'0px';top:'0px'"><tr><td><span id="countryText" class="country"></span></td><td class="detail" id="detailText"></td></tr></table>
+		</div>
+		<div id="visualization" >
+			<div id="earthArea" class="earthArea"></div>
+			<div id="glContainer">
+			</div>
+		</div>
+	</div>
+	<div class="earthInfo">
+		<div class="earthInfoTop">
+			<div class="earthInfoTitle">--</div>
+			<div class="earthInfoType">受攻击类型：<span class="earthInfoTypeColor">--</span></div>
+		</div>
+		<div class="earthInfoMid">
+			<div>所属国家：<span class="earthInfoDestCountry">--</span></div>
+			<div>IP：<span class="earthInfoDestIp">--</span></div>
+			<div>设备类型：<span class="earthInfoDeviceType">--</span></div>
+			<div>设备号：<span class="earthInfoDeviceId">--</span></div>
+			<div>时间：<span class="earthInfoTime">--</span></div>
+			<div>攻击源位置：<span class="earthInfoSrcLoc">--</span></div>
+			<div>攻击源IP：<span class="earthInfoSrcIP">--</span></div>
+		</div>
+	</div>
+	<script src="js/frame/earthframe.js"></script>
+	<script type="x-shader/x-vertex" id="vertexshader">
+		uniform float amplitude;
+		attribute float size;
+		attribute vec3 customColor;
+		varying vec3 vColor;
+		void main() {
+			vColor = customColor;
+			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+			gl_PointSize = size;
+			gl_Position = projectionMatrix * mvPosition;
+		}
+	</script><!-- shader -->
+	<script type="x-shader/x-fragment" id="fragmentshader">
+		uniform vec3 color;
+		uniform sampler2D texture;
+		varying vec3 vColor;
+		void main() {
+			gl_FragColor = vec4( color * vColor, 1.0 );
+			gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord );
+		}
+	</script><!-- shader -->
+	<script id="globeVertexShader" type="x-shader/x-vertex">
+		varying vec3 vNormal;
+		varying vec2 vUv;
+		void main() {
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0);
+			vNormal = normalize( normalMatrix * normal );
+			vUv = uv;
+		}
+	</script><!-- shader -->
+	<script id="globeFragmentShader" type="x-shader/x-fragment">
+		uniform sampler2D mapIndex;
+		uniform sampler2D lookup;
+		uniform sampler2D outline;
+		uniform float outlineLevel;
+		varying vec3 vNormal;
+		varying vec2 vUv;
+		void main() {
+			vec4 mapColor = texture2D( mapIndex, vUv );
+			float indexedColor = mapColor.x;
+			vec2 lookupUV = vec2( indexedColor, 0. );
+			vec4 lookupColor = texture2D( lookup, lookupUV );
+			float mask = lookupColor.x + (1.-outlineLevel) * indexedColor;
+			mask = clamp(mask,0.,1.);
+			float outlineColor = texture2D( outline, vUv ).x * outlineLevel;
+			float diffuse = mask + outlineColor;
+			gl_FragColor = vec4( vec3(diffuse), 1.  );
+			// gl_FragColor = vec4( lookupColor );
+			// gl_FragColor = vec4(texture2D( lookup, vUv ).xyz,1.);
+		}
+	</script><!-- shader -->
+	<script src="js/frame/jquery-1.9.1.min.js"></script>
+	<script src="js/earthData.js"></script>
+	<script src="js/earthModel.js"></script>
+</body>
+</html>
